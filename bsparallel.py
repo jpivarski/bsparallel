@@ -1,3 +1,4 @@
+import time
 import builtins
 import traceback
 import multiprocessing
@@ -6,34 +7,39 @@ arguments = multiprocessing.Queue()
 dead = multiprocessing.Event()
 
 
+def timestamp():
+    return time.strftime("%H:%M ")
+
+
 def work(identifier, task):
     def modified_print(*args, **kwargs):
-        args = (identifier + ":",) + args
+        args = (timestamp() + identifier + ":",) + args
         kwargs["flush"] = True
         return builtins.print(*args, **kwargs)
 
     task.__globals__["print"] = modified_print
 
-    builtins.print("BEGIN", identifier, flush=True)
+    builtins.print(timestamp() + "BEGIN", identifier, flush=True)
     while True:
         if dead.is_set():
-            builtins.print("END BECAUSE DEAD", identifier, flush=True)
+            builtins.print(timestamp() + "END BECAUSE DEAD", identifier, flush=True)
             return
 
         args = arguments.get()
         if args is None:
-            builtins.print("END", identifier, flush=True)
+            builtins.print(timestamp() + "END", identifier, flush=True)
             return
 
         try:
             task(*args)
         except Exception:
             stacktrace = traceback.format_exc().split("\n")
+            ts = timestamp()
             builtins.print(
-                "\n".join(f"{identifier}: {line}" for line in stacktrace), flush=True
+                "\n".join(f"{ts}{identifier}: {line}" for line in stacktrace), flush=True
             )
             dead.set()
-            builtins.print("END WITH ERROR", identifier, flush=True)
+            builtins.print(ts + "END WITH ERROR", identifier, flush=True)
             return
 
 
@@ -55,3 +61,6 @@ def run(num_workers, task, inputs):
 
     for worker in workers:
         worker.join()
+
+
+__all__ = ["run"]
