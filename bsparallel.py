@@ -12,7 +12,7 @@ def timestamp():
     return time.strftime("%H:%M ")
 
 
-def work(identifier, task, total):
+def work(identifier, task, total, arguments, counter, dead):
     def modified_print(*args, **kwargs):
         args = (timestamp() + identifier + ":",) + args
         kwargs["flush"] = True
@@ -69,7 +69,9 @@ def run(num_workers, task, inputs):
     for i in range(num_workers):
         arguments.put(None)
         workers.append(
-            multiprocessing.Process(target=work, args=(f"WORKER-{i}", task, total))
+            multiprocessing.Process(
+                target=work, args=(f"WORKER-{i}", task, total, arguments, counter, dead)
+            )
         )
 
     for worker in workers:
